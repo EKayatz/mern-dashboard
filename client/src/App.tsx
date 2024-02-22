@@ -1,80 +1,94 @@
+import React from "react";
+
+import {
+  GitHubBanner,
+  Refine,
+  LegacyAuthProvider as AuthProvider,
+} from "@refinedev/core";
+import {
+  notificationProvider,
+  RefineSnackbarProvider,
+  ReadyPage,
+  ErrorComponent,
+} from "@refinedev/mui";
+import CssBaseline from "@mui/material/CssBaseline";
+import GlobalStyles from "@mui/material/GlobalStyles";
 import AccountCircleOutlined from "@mui/icons-material/AccountCircleOutlined";
 import ChatBubbleOutline from "@mui/icons-material/ChatBubbleOutline";
 import PeopleAltOutlined from "@mui/icons-material/PeopleAltOutlined";
 import StarOutlineRounded from "@mui/icons-material/StarOutlineRounded";
 import VillaOutlined from "@mui/icons-material/VillaOutlined";
-import CssBaseline from "@mui/material/CssBaseline";
-import GlobalStyles from "@mui/material/GlobalStyles";
-import {
-  GitHubBanner,
-  LegacyAuthProvider as AuthProvider,
-  Refine,
-  AuthBindings,
-} from "@refinedev/core";
-import {
-  ErrorComponent,
-  useNotificationProvider,
-  ReadyPage,
-  RefineSnackbarProvider,
-} from "@refinedev/mui";
 
-import routerProvider from "@refinedev/react-router-v6/legacy";
 import dataProvider from "@refinedev/simple-rest";
-import axios from "axios";
+import routerProvider from "@refinedev/react-router-v6/legacy";
+import axios, { AxiosRequestConfig } from "axios";
+import { Title, Sider, Layout, Header } from "./components/layout";
 import { ColorModeContextProvider } from "./contexts/color-mode";
 import { CredentialResponse } from "./interfaces/google";
 import { parseJwt } from "./utils/parse-jwt";
 
 import {
-  AgentProfile,
-  Agents,
-  AllProperties,
-  CreateProperty,
-  EditProperty,
-  Home,
   Login,
+  Home,
+  Agents,
   MyProfile,
   PropertyDetails,
+  AllProperties,
+  CreateProperty,
+  AgentProfile,
+  EditProperty,
 } from "./pages";
-import { Title, Sider, Layout, Header } from "./components/layout";
 
 const axiosInstance = axios.create();
-axiosInstance.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use((request: AxiosRequestConfig) => {
   const token = localStorage.getItem("token");
-  if (config.headers) {
-    config.headers["Authorization"] = `Bearer ${token}`;
+  if (request.headers) {
+    request.headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    request.headers = {
+      Authorization: `Bearer ${token}`,
+    };
   }
 
-  return config;
+  return request as AxiosRequestConfig;
 });
 
 function App() {
-  const authProvider: AuthBindings = {
+  const authProvider: AuthProvider = {
     login: async ({ credential }: CredentialResponse) => {
       const profileObj = credential ? parseJwt(credential) : null;
 
       if (profileObj) {
-        localStorage.setItem(
-          "user",
-          JSON.stringify({
-            ...profileObj,
+        const response = await fetch("http://localhost:8080/api/v1/users", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: profileObj.name,
+            email: profileObj.email,
             avatar: profileObj.picture,
-          })
-        );
+          }),
+        });
 
-        localStorage.setItem("token", `${credential}`);
+        const data = await response.json();
 
-        return {
-          success: true,
-          redirectTo: "/",
-        };
+        if (response.status === 200) {
+          localStorage.setItem(
+            "user",
+            JSON.stringify({
+              ...profileObj,
+              avatar: profileObj.picture,
+              userid: data._id,
+            })
+          );
+        } else {
+          return Promise.reject();
+        }
       }
+      localStorage.setItem("token", `${credential}`);
 
-      return {
-        success: false,
-      };
+      return Promise.resolve();
     },
-    logout: async () => {
+    logout: () => {
       const token = localStorage.getItem("token");
 
       if (token && typeof window !== "undefined") {
@@ -82,58 +96,39 @@ function App() {
         localStorage.removeItem("user");
         axios.defaults.headers.common = {};
         window.google?.accounts.id.revoke(token, () => {
-          return {};
+          return Promise.resolve();
         });
       }
 
-      return {
-        success: true,
-        redirectTo: "/login",
-      };
+      return Promise.resolve();
     },
-    onError: async (error) => {
-      console.error(error);
-      return { error };
-    },
-    check: async () => {
+    checkError: () => Promise.resolve(),
+    checkAuth: async () => {
       const token = localStorage.getItem("token");
 
       if (token) {
-        return {
-          authenticated: true,
-        };
+        return Promise.resolve();
       }
-
-      return {
-        authenticated: false,
-        error: {
-          message: "Check failed",
-          name: "Token not found",
-        },
-        logout: true,
-        redirectTo: "/login",
-      };
+      return Promise.reject();
     },
+
     getPermissions: async () => null,
-    getIdentity: async () => {
+    getUserIdentity: async () => {
       const user = localStorage.getItem("user");
       if (user) {
-        return JSON.parse(user);
+        return Promise.resolve(JSON.parse(user));
       }
-
-      return null;
     },
   };
 
   return (
     <ColorModeContextProvider>
-      <GitHubBanner />
       <CssBaseline />
       <GlobalStyles styles={{ html: { WebkitFontSmoothing: "auto" } }} />
       <RefineSnackbarProvider>
         <Refine
           dataProvider={dataProvider("http://localhost:8080/api/v1")}
-          notificationProvider={useNotificationProvider}
+          notificationProvider={notificationProvider}
           ReadyPage={ReadyPage}
           catchAll={<ErrorComponent />}
           resources={[
@@ -173,7 +168,7 @@ function App() {
           Layout={Layout}
           Header={Header}
           legacyRouterProvider={routerProvider}
-          //legacyAuthProvider={authProvider}
+          legacyAuthProvider={authProvider}
           LoginPage={Login}
           DashboardPage={Home}
         />

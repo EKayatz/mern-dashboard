@@ -1,7 +1,7 @@
-import Property from "../models/property.js";
-import User from "../models/user.js";
+import Property from "../mongodb/models/property.js";
+import User from "../mongodb/models/user.js";
 
-import mongoose, { startSession } from "mongoose";
+import mongoose from "mongoose";
 import * as dotenv from "dotenv";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -34,12 +34,10 @@ const getAllProperties = async (req, res) => {
   }
 
   try {
-    const count = await Property.countDocuments(query);
+    const count = await Property.countDocuments({ query });
 
-    const properties = await Property.find(query)
-      .limit(_end)
-      .skip(_start)
-      .sort({ [_sort]: _order });
+    const properties = await Property.find(query).limit(_end).skip(_start);
+    // .sort({ [_sort]: _order });
 
     res.header("x-total-count", count);
     res.header("Access-Control-Expose-Headers", "x-total-count");
@@ -52,8 +50,7 @@ const getAllProperties = async (req, res) => {
 
 const getPropertyDetail = async (req, res) => {
   const { id } = req.params;
-
-  const propertyExists = await Property.findById({ _id: id }).populate(
+  const propertyExists = await Property.findOne({ _id: id }).populate(
     "creator"
   );
 
@@ -90,9 +87,10 @@ const createProperty = async (req, res) => {
 
     user.allProperties.push(newProperty._id);
     await user.save({ session });
+
     await session.commitTransaction();
 
-    res.status(201).json({ message: "Property created successfully" });
+    res.status(200).json({ message: "Property created successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -103,6 +101,7 @@ const updateProperty = async (req, res) => {
     const { id } = req.params;
     const { title, description, propertyType, location, price, photo } =
       req.body;
+
     const photoUrl = await cloudinary.uploader.upload(photo);
 
     await Property.findByIdAndUpdate(
@@ -116,6 +115,7 @@ const updateProperty = async (req, res) => {
         photo: photoUrl.url || photo,
       }
     );
+
     res.status(200).json({ message: "Property updated successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -126,19 +126,19 @@ const deleteProperty = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const propertyToDelete = await Property.findById({ _id: id }).populate(
-      "creator"
-    );
+    const propertyToDelete = await Property.findById(id).populate("creator");
 
-    if (!propertyToDelete) throw new Error("Property not found");
+    if (!propertyToDelete) {
+      return res.status(404).json({ message: "Property not found" });
+    }
 
     const session = await mongoose.startSession();
     session.startTransaction();
 
-    propertyToDelete.remove({ session });
-    propertyToDelete.creator.allProperties.pull(propertyToDelete);
-
+    await Property.deleteOne({ _id: id }).session(session);
+    propertyToDelete.creator.allProperties.pull(propertyToDelete._id);
     await propertyToDelete.creator.save({ session });
+
     await session.commitTransaction();
 
     res.status(200).json({ message: "Property deleted successfully" });

@@ -2,7 +2,8 @@ import User from "../mongodb/models/user.js";
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({}).limit(req, query._end);
+    const users = await User.find({}).limit(req.query._end);
+
     res.status(200).json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -15,11 +16,15 @@ const createUser = async (req, res) => {
 
     const userExists = await User.findOne({ email });
 
-    if (userExists) return res.status(400).json(userExists);
+    if (userExists) return res.status(200).json(userExists);
 
-    const newUser = await User.create({ name, email, avatar });
+    const newUser = await User.create({
+      name,
+      email,
+      avatar,
+    });
 
-    res.status(201).json(newUser);
+    res.status(200).json(newUser);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
