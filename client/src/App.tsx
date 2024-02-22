@@ -39,19 +39,19 @@ import {
   EditProperty,
 } from "./pages";
 
-const axiosInstance = axios.create();
-axiosInstance.interceptors.request.use((request: AxiosRequestConfig) => {
-  const token = localStorage.getItem("token");
-  if (request.headers) {
-    request.headers["Authorization"] = `Bearer ${token}`;
-  } else {
-    request.headers = {
-      Authorization: `Bearer ${token}`,
-    };
-  }
+// const axiosInstance = axios.create();
+// axiosInstance.interceptors.request.use((request: AxiosRequestConfig) => {
+//   const token = localStorage.getItem("token");
+//   if (request.headers) {
+//     request.headers["Authorization"] = `Bearer ${token}`;
+//   } else {
+//     request.headers = {
+//       Authorization: `Bearer ${token}`,
+//     };
+//   }
 
-  return request as AxiosRequestConfig;
-});
+//   return request as AxiosRequestConfig;
+// });
 
 function App() {
   const authProvider: AuthProvider = {
@@ -59,15 +59,18 @@ function App() {
       const profileObj = credential ? parseJwt(credential) : null;
 
       if (profileObj) {
-        const response = await fetch("http://localhost:8080/api/v1/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: profileObj.name,
-            email: profileObj.email,
-            avatar: profileObj.picture,
-          }),
-        });
+        const response = await fetch(
+          "https://mern-dashboard-kbw8.onrender.com/api/v1/users",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: profileObj.name,
+              email: profileObj.email,
+              avatar: profileObj.picture,
+            }),
+          }
+        );
 
         const data = await response.json();
 
@@ -122,58 +125,62 @@ function App() {
   };
 
   return (
-    <ColorModeContextProvider>
-      <CssBaseline />
-      <GlobalStyles styles={{ html: { WebkitFontSmoothing: "auto" } }} />
-      <RefineSnackbarProvider>
-        <Refine
-          dataProvider={dataProvider("http://localhost:8080/api/v1")}
-          notificationProvider={notificationProvider}
-          ReadyPage={ReadyPage}
-          catchAll={<ErrorComponent />}
-          resources={[
-            {
-              name: "properties",
-              list: AllProperties,
-              show: PropertyDetails,
-              create: CreateProperty,
-              edit: EditProperty,
-              icon: <VillaOutlined />,
-            },
-            {
-              name: "agents",
-              list: Agents,
-              show: AgentProfile,
-              icon: <PeopleAltOutlined />,
-            },
-            {
-              name: "reviews",
-              list: Home,
-              icon: <StarOutlineRounded />,
-            },
-            {
-              name: "messages",
-              list: Home,
-              icon: <ChatBubbleOutline />,
-            },
-            {
-              name: "my-profile",
-              options: { label: "My Profile " },
-              list: MyProfile,
-              icon: <AccountCircleOutlined />,
-            },
-          ]}
-          Title={Title}
-          Sider={Sider}
-          Layout={Layout}
-          Header={Header}
-          legacyRouterProvider={routerProvider}
-          legacyAuthProvider={authProvider}
-          LoginPage={Login}
-          DashboardPage={Home}
-        />
-      </RefineSnackbarProvider>
-    </ColorModeContextProvider>
+    // <ColorModeContextProvider>
+    // <CssBaseline />
+    // <GlobalStyles
+    //   styles={{ html: { WebkitFontSmoothing: "auto", bgcolor: "#f0f0f0" } }}
+    // />
+    <RefineSnackbarProvider>
+      <Refine
+        dataProvider={dataProvider(
+          "https://mern-dashboard-kbw8.onrender.com/api/v1"
+        )}
+        notificationProvider={notificationProvider}
+        ReadyPage={ReadyPage}
+        catchAll={<ErrorComponent />}
+        resources={[
+          {
+            name: "properties",
+            list: AllProperties,
+            show: PropertyDetails,
+            create: CreateProperty,
+            edit: EditProperty,
+            icon: <VillaOutlined />,
+          },
+          {
+            name: "agents",
+            list: Agents,
+            show: AgentProfile,
+            icon: <PeopleAltOutlined />,
+          },
+          {
+            name: "reviews",
+            list: Home,
+            icon: <StarOutlineRounded />,
+          },
+          {
+            name: "messages",
+            list: Home,
+            icon: <ChatBubbleOutline />,
+          },
+          {
+            name: "my-profile",
+            options: { label: "My Profile " },
+            list: MyProfile,
+            icon: <AccountCircleOutlined />,
+          },
+        ]}
+        Title={Title}
+        Sider={Sider}
+        Layout={Layout}
+        Header={Header}
+        legacyRouterProvider={routerProvider}
+        legacyAuthProvider={authProvider}
+        LoginPage={Login}
+        DashboardPage={Home}
+      />
+    </RefineSnackbarProvider>
+    // </ColorModeContextProvider>
   );
 }
 
