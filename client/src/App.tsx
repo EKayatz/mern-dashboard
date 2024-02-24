@@ -125,11 +125,6 @@ function App() {
   };
 
   return (
-    // <ColorModeContextProvider>
-    // <CssBaseline />
-    // <GlobalStyles
-    //   styles={{ html: { WebkitFontSmoothing: "auto", bgcolor: "#f0f0f0" } }}
-    // />
     <RefineSnackbarProvider>
       <Refine
         dataProvider={dataProvider(
@@ -180,7 +175,6 @@ function App() {
         DashboardPage={Home}
       />
     </RefineSnackbarProvider>
-    // </ColorModeContextProvider>
   );
 }
 
